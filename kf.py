@@ -17,7 +17,7 @@
 
 #TODO 1. get 'heading_using_vector.cpp' from my computer
 import numpy as np
-from numpy.linalg import pinv
+from numpy.linalg import pinv, inv
 import math
 
 import rospy
@@ -44,59 +44,73 @@ class linearKalmanFilter():
     
     def __init__(self, x=0.0, y=0.0, yaw=0.0, vx=0.01, vy=0, omega=0.0):
         self.isFirstTime = True
+        self.prevSensorData = np.zeros((4,1))
+
+        # ERP Parameter
         self.dt = 0.01667 # [sec]
-        
-        self.X = np.array([x, y, yaw, vx, vy, omega]).T
+        self.c_r1 = 0.1
+        self.c_a = 0.001
+
+        # Kalman Filter Parameter
+        self.X = np.array([x, y, yaw, vx, vy, omega]).reshape(6,1)
         self.P = np.diag([0.1, 0.1, np.deg2rad(3), 0.01, 0.01, np.deg2rad(0.01)]) ** 2 
-        # Hyper Parameter of External Disturbance
+        # -- Hyper Parameter of External Disturbance
         self.Q = np.diag([0.2, 0.2, np.deg2rad(8), 0.1, 0.1, np.deg2rad(0.7)]) ** 2
-        # Hyper Parameter of Sensor Uncertainty
+        # -- Hyper Parameter of Sensor Uncertainty
         self.R = np.diag([0.08, 0.08, np.deg2rad(10), np.deg2rad(1)]) ** 2
-                 
+        # self.gpsXs = []
+        # self.gpsYs = []
+        # self.gpsYaws = []
+        # self.kfStates = self.X.copy()
         paramList = ('gpsX',
                      'gpsY',
                      'gpsHeading',
                      'imuYawRate',
                      'erpSteer',
-                     'erpSpeed')
+                     'erpSpeed',
+                     'erpThrottle')
 
         for paramName in paramList:
             exec('self.'+ paramName + '= 0')
 
         self.gpsOdomSub = rospy.Subscriber('/odom',Odometry, self.gpsOdomCallback, queue_size=1)
-        self.gpsHeadingSub = rospy.Subscriber('/heading',fromERP, self.gpsHeadingCallback, queue_size=1)
+        self.gpsHeadingSub = rospy.Subscriber('/current_yaw',Float64, self.gpsHeadingCallback, queue_size=1)
         self.ERPSub = rospy.Subscriber('/erpData',fromERP, self.ERPCallback, queue_size=1)
-        self.imuSub = rospy.Subscriber(...)
+        self.imuSub = rospy.Subscriber('/imu', Imu, self.imuCallback)
         
         
     def gpsOdomCallback(self, odom):
         self.gpsX = odom.pose.pose.position.x   # utm x [m]
         self.gpsY = odom.pose.pose.position.y   # utm y [m]
+
+        # self.gpsXs.append(self.gpsX)
+        # self.gpsYs.append(self.gpsY)
         
     def gpsHeadingCallback(self, heading): 
         self.gpsHeading = heading.data          # [rad]
-        
+        # self.gpsYaws.append(self.gpsHeading)
+
     def imuCallback(self, imu):
         self.imuYawRate = imu.angular_velocity.z * np.pi/180  # [rad/s]
         return self.calcState()
     
     def ERPCallback(self, ERP):
         self.erpSteer = ERP.steer / 71 * np.pi/180 # [rad]
-        self.erpThrottle = -(self.ERPspeed - ERP.speed / 36) / self.dt # [m/s^2]
+        self.erpThrottle = -(self.erpSpeed - ERP.speed / 36) / self.dt # [m/s^2]
         self.erpSpeed = ERP.speed / 36 # [m/s]
 
     def calcState(self):
-        throttle = self.ERPthrottle
-        delta = self.ERPsteer
+        throttle = self.erpThrottle
+        delta = self.erpSteer
         dt = self.dt
-        
+        # print(f"{self.X[1]}")
         # Prediction Matrix
         F = np.array([
-            [1, 0, 0, np.cos(self.X[2])*dt, -np.sin(self.X[2])*dt, 0],# cos(yaw_k) x dt,  sin(yaw_k) x dt
-            [0, 1, 0, np.sin(self.X[2])*dt, np.cos(self.X[2])*dt, 0],
+            [1, 0, 0, np.cos(np.float(self.X[2]))*dt, -np.sin(np.float(self.X[2]))*dt, 0],# cos(yaw_k) x dt,  sin(yaw_k) x dt
+            [0, 1, 0, np.sin(np.float(self.X[2]))*dt, np.cos(np.float(self.X[2]))*dt, 0],
             [0, 0, 1, 0, 0, dt],
-            [0, 0, 0, 1, self.X[5]*dt, 0],              # Omega x dt
-            [0, 0, 0, -self.X[5]*dt, 1, 0],             # -Omega x dt
+            [0, 0, 0, 1, np.float(self.X[5])*dt, 0],              # Omega x dt
+            [0, 0, 0, -np.float(self.X[5])*dt, 1, 0],             # -Omega x dt
             [0, 0, 0, 0, 0, 1]
             ])
     
@@ -117,10 +131,10 @@ class linearKalmanFilter():
             ])
         
         # Calculate Parameters of Bicycle Model
-        Ffy = -Cf * math.atan2(((self.X[4] + Lf * self.X[5]) / self.X[3] - delta), 1.0)
-        Fry = -Cr * math.atan2((self.X[4] - Lr * self.X[5]) / self.X[3], 1.0)
-        R_x = self.c_r1 * self.X[3]
-        F_aero = self.c_a * self.X[3] ** 2
+        Ffy = -Cf * math.atan2(((np.float(self.X[4]) + Lf * np.float(self.X[5])) / np.float(self.X[3]) - delta), 1.0)
+        Fry = -Cr * math.atan2((np.float(self.X[4]) - Lr * np.float(self.X[5])) / np.float(self.X[3]), 1.0)
+        R_x = self.c_r1 * np.float(self.X[3])
+        F_aero = self.c_a * np.float(self.X[3]) ** 2
         F_load = F_aero + R_x
                 
         # External influence    
@@ -149,12 +163,14 @@ class linearKalmanFilter():
         ])
     
         # 'C' Matrix is the Confirmation Matrix whether sensors updated(renewal) or not.
-        isUpdated = Z == prevSensorData
-        C = np.array([
-            [bool(isUpdated[0]), 0, 0, 0, 0, 0],  
-            [0, bool(isUpdated[1]), 0, 0, 0, 0],  
-            [0, 0, bool(isUpdated[2]), 0, 0, 0],  
-            [0, 0, 0, 0, 0, bool(isUpdated[3])]
+        isUpdated = Z == self.prevSensorData
+        C = np.array([                       #       _ GPS X_ GPS Y_ GPS Heading_ IMU Yawrate
+            [bool(isUpdated[0]), 0, 0, 0],   # x    |   1      0           0         0
+            [0, bool(isUpdated[1]), 0, 0],   # y    |   0      1           0         0
+            [0, 0, bool(isUpdated[2]), 0],   # yaw  |   0      0           1         0
+            [0, 0, 0, 0],                    # Vx   |   0      0           0         0
+            [0, 0, 0, 0],                    # Vy   |   0      0           0         0
+            [0, 0, 0, bool(isUpdated[3])]    # omega|   0      0           0         1
         ])
 
         # 1.----Predict----
@@ -169,7 +185,9 @@ class linearKalmanFilter():
             P = F @ self.P @ F.T + self.Q  
         
         # 2.----Calculate Kalman Gain----
-        K = P @ H.T @ C.T @ pinv(C @ (H @ P @ H.T + self.R) @ C.T) # K = P @ H.T @ pinv(H @ P @ H.T + R)
+        S = (H @ P @ H.T) + self.R
+        # print(P.shape, H.T.shape, C.T.shape, pinv(C @ (H @ P @ H.T + self.R) @ C.T).shape)
+        K = P @ H.T @ C.T @ pinv(C @ S @ C.T) # K = P @ H.T @ pinv(H @ P @ H.T + R)
         
         # 3.----Estimate----
         # Estimate The State with Sensors
@@ -178,6 +196,8 @@ class linearKalmanFilter():
         # Estimate The Covariance of State
         self.P = P - K @ C @ H @ P #P = P - K @ H @ P
         
-        prevSensorData = Z
-        
+        self.prevSensorData = Z
+        # self.kfStates = np.hstack((self.kfStates, self.X))
+        # print(f"X : {np.float(self.X[0])}")
+        print(f"Yaw : {np.float(self.X[2]) * 180 / np.pi}")
 
