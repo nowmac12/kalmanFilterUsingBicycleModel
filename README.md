@@ -4,15 +4,15 @@ Using Bicycle Model
 ### Input
 1. ERP Data
 
- -- Current Front Steering Angle
+         -- Current Front Steering Angle
  
- -- Current Vehicle Speed
+         -- Current Vehicle Speed
 
 2. Sensors (The 'Z' Matrix in code.)
 
--- GPS
+        -- GPS
 
--- IMU
+        -- IMU
 
 ### Output
 Estimated Vehicle State 
