@@ -15,15 +15,16 @@ Using Bicycle Model
          IMU
 
 ## Output
-###Estimated Vehicle State 
+### Estimated Vehicle State 
 **[x, y, yaw, vx, vy, omega]^T**
 
-###ROS
-ROS Topic name : /kalmanFilteredData
-ROS msg type : geometry_msgs/Pose2D
-ROS msg info : float64 x
-               float64 y
-               float64 yaw
+### ROS
+   Topic name : /kalmanFilteredData
+ 
+   msg type : geometry_msgs/Pose2D
+ 
+   msg info : float64 x,
+ float64 y,  float64 yaw
 
 ## How to execute
 ### 0.ERP Control Node (/dev/ttyUSB0)
