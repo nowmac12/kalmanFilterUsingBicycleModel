@@ -12,6 +12,7 @@ find_package(catkin REQUIRED COMPONENTS
   std_msgs
   nav_msgs
   sensor_msgs
+  geometry_msgs
   control_to_serial
 )
 
@@ -112,7 +113,7 @@ include_directories(${Eigen_INCLUDE_DIRS})
 catkin_package(
   INCLUDE_DIRS include
   LIBRARIES cpptest
-  CATKIN_DEPENDS roscpp std_msgs nav_msgs sensor_msgs 
+  CATKIN_DEPENDS roscpp std_msgs nav_msgs sensor_msgs geometry_msgs
   DEPENDS system_lib Eigen
 )
 
