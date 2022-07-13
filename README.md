@@ -48,8 +48,8 @@ rosrun control_to_serial Serial
 Run GPS codes
 ```sh
 rosrun nmea_navsat_driver nmea_serial_driver
-rosrun nmea_vtg_reader heading_using_vector
 rosrun gps_common utm_odometry_node
+rosrun nmea_vtg_reader heading_using_vector
 ```
 ### 2. IMU (/dev/ttyUSB2)
 
@@ -60,6 +60,7 @@ rosrun razor_imu_9dof imu_node.py
 > **Note** : **The IMU sensor must be attached to the center of the vehicle, and pay attention to the direction of the IMU sensor coordinate system.**
 
 # How to execute
+## DO NOT ACT LIKE MFCKIN KID
 ### Python
 ```sh
 rosrun kbub_localization kbub_localization.py
@@ -73,10 +74,27 @@ python3 kbub_localization.py
 > **Note** : **Before execute, Make sure to Change the permission** -> "sudo chmod +x"
 
 ### C++
-```sh
-rosrun kbub_localization localization
-```
+1. Using Intial Position  
+    ```sh
+    rosrun kbub_localization localization
+    ```  
+    > **Note** : In this case, **The initial position & orientation of the vehicle must be specified** in the code.
 
+2. Using Map  
+    2-1. Create a map using "txt_saver_for_kcity"  
+    
+    2-2. Do "path_smoothing" and check the result  
+    
+    2-3. Run Kalman Filter with parameter called "map". 
+    ```sh
+    rosrun kbub_localization localization _map:={your_map_location}
+    ```
+    > **Note** :  
+    > * In this case, The location of map must be "The first txt file". ex) 1.txt  
+    > * So that the program can estimate(calculate) the initial orientation of vehicle. **See getInitialYaw() func in code**.  
+    > * Initial position is also calculated automatically. **DO NOT MOVE THE VEHICLE BEFORE FLUSHING DONE**. **See flushGPS(), getInitialGPS() func in code**. 
+    
+    
 ## References
 1. Bicycle Model & Kalman Filter Paper
    --> https://escholarship.org/content/qt3v08d6nt/qt3v08d6nt.pdf
