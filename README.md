@@ -61,6 +61,7 @@ rosrun razor_imu_9dof imu_node.py
 
 # How to execute
 ### DO NOT ACT LIKE MFCKIN KID
+Almost all of my c++ code prints logs, so do not be a bastard
 ### Python
 ```sh
 rosrun kbub_localization kbub_localization.py
