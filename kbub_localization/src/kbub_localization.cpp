@@ -1,7 +1,7 @@
 /*
  * kbub_localization.cpp
  *
- *  Created on: 2022. 07. 13.
+ *  Created on: 2022. 07. 15.
  *      Author: Chan Yeop Lee
  */
 #include <iostream>
@@ -538,6 +538,7 @@ int main(int argc, char **argv){
         ROS_INFO("[constructor] : Not Using Global Map");
         ROS_WARN("[constructor] : Please Check the validation of your inputs ");
         linearKalmanFilter lkf = linearKalmanFilter(346297.3469, 4069642.8422,-45.0 * M_PI/180.0, 0.01, 0.0, 0.0);
+        lkf.rosInit(&nh);
         
         ros::spin();
     }
