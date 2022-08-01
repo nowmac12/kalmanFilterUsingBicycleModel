@@ -60,8 +60,7 @@ rosrun razor_imu_9dof imu_node.py
 > **Note** : **The IMU sensor must be attached to the center of the vehicle, and pay attention to the direction of the IMU sensor coordinate system.**
 
 # How to execute
-### DO NOT ACT LIKE MFCKIN KID
-Almost all of my c++ code prints logs, so do not be a bastard
+
 ### Python
 ```sh
 rosrun kbub_localization kbub_localization.py
